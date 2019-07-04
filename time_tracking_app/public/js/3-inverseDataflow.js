@@ -9,8 +9,10 @@
 */
 
 //Componenete de mas alto grado en la jerarquia que de encarga de renderizar
-//su respectivos componentes hijos
+//su respectivos componentes hijos. este componente es el responsable de los daors de los timers, es aqui
+//donde se ha definido la lógica para manejar los eventos que se capturan de los componentes de menor jerarquia.
 class TimersDashboard extends React.Component {
+
     state = {
         timers: [
             {
@@ -29,6 +31,25 @@ class TimersDashboard extends React.Component {
             },
         ],
     };
+
+    //Esta función maneja el evento de creación de un timer
+    handleCreateFormSubmit = (timer) => {
+        this.createTimer(timer);
+    };
+
+    //Función que implementa la creación de un timer
+    createTimer = (timer) => {
+        const newTimer = helpers.newTimer(timer);
+        this.setState({
+            timers: this.state.timers.concat(newTimer),
+        });
+    }
+
+    //Esta función maneja el evento de edición de un timer
+    handleEditFormSubmit = (timer) => {
+
+    }
+
     render(){
         return (
             <div className='ui three column centered grid'>
@@ -36,7 +57,7 @@ class TimersDashboard extends React.Component {
                     <EditableTimerList
                         timers={this.state.timers}
                     />
-                    <ToggleableTimerForm/>
+                    <ToggleableTimerForm onFormSubmit={this.handleCreateFormSubmit}/>
                 </div>
             </div>
         );
@@ -92,13 +113,71 @@ class EditableTimer extends React.Component{
     }
 }
 
+//Componente que maneja la logica de renderizado del boton inferior para agregar un
+//elemento a la lista y el formulario de agregacion.
+class ToggleableTimerForm extends React.Component{
+    //Inicialización del estado del componente
+    state = {
+        isOpen: false,
+    };
+
+    //En esta forma react hace automaticamente el bind de la funcion de lo contrario la
+    //notacion deberia ser la siguiente:
+    // handleFormOpen() {
+    //     this.setState({ isOpen: true });
+    // }
+    // constructor(props) {
+    //     super(props);
+    //     this.handleFormOpen = this.handleFormOpen.bind(this);
+    // }
+
+    //Funcion para modificar la variable que controla el renderizado del formulario
+    handleFormOpen = () => {
+        this.setState({isOpen: true});
+    }
+
+    //Funciones que se pasan como parámetro al componente TimerForm
+    handleFormClose = () => {
+        this.setState({isOpen: false});
+    }
+
+    handleFormSubmit = (timer) => {
+      this.props.onFormSubmit(timer);
+      this.setState({isOpen: false})
+    };
+
+    //Renderizado del componente con base a un condicional controlado por la variable isOpen
+    render(){
+        if(this.state.isOpen){
+            return (
+                <TimerForm
+                    onFormSubmit={this.handleFormSubmit}
+                    onFormClose={this.handleFormClose}
+                />
+            );
+        }else{
+            return(
+                <div className='ui basic content center aligned segment'>
+                    <button className='ui basic button icon' onClick={this.handleFormOpen}>
+                        <i className='plus icon' />
+                    </button>
+                </div>
+            );
+        }
+    }
+}
+
+
 //Componente para la edicion de un timer
 class TimerForm extends React.Component {
+
+    //Inicializaxación del estado del componente
     state = {
         title: this.props.title || '',
         project: this.props.project || '',
     };
 
+    //Función que envia al padre las propiedades del elemento creado o modificado
     handleSubmit = (e) => {
         this.props.onFormSubmit({
             id: this.props.id,
@@ -107,15 +186,16 @@ class TimerForm extends React.Component {
         });
     };
 
+    handleTitleChange = (e) => {
+        this.setState({title: e.target.value})
+    };
+
+    handleProjectChange = (e) => {
+        this.setState({project: e.target.value})
+    };
+
     render() {
         const submitText = this.props.id ? 'Update' : 'Create';
-        handleTitleChange = (e) => {
-            this.setState({title: e.target.value})
-        };
-        handleProjectChange = (e) => {
-            this.setState({project: e.target.value})
-        };
-
         return (
             <div className='ui centered card'>
                 <div className='content'>
@@ -135,71 +215,17 @@ class TimerForm extends React.Component {
                             />
                         </div>
                         <div className='ui two bottom attached buttons'>
-                            <button className='ui basic blue button'>
+                            <button className='ui basic blue button' onClick={this.handleSubmit}>
                                 {submitText}
-                                onClick={this.handleSubmit}
                             </button>
-                            <button className='ui basic red button'>
+                            <button className='ui basic red button' onClick={this.props.onFormClose}>
                                 Cancel
-                                onClick={this.props.onFormClose}
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
         );
-    }
-}
-
-//Componente que maneja la logica de renderizado del boton inferior para agregar un
-//elemento a la lista y el formulario de agregacion.
-class ToggleableTimerForm extends React.Component{
-    state = {
-        isOpen: true,
-    };
-
-    //En esta forma react hace automaticamente el bind de la funcion de lo contrario la
-    //notacion deberia ser la sigueinte:
-    // handleFormOpen() {
-    //     this.setState({ isOpen: true });
-    // }
-    // constructor(props) {
-    //     super(props);
-    //     this.handleFormOpen = this.handleFormOpen.bind(this);
-    // }
-    //Funcion para modificar la variable que controla el renderizado del formulario
-    handleFormOpen = () => {
-        this.setState({isOpen: true});
-    }
-
-    handleFormClose = () => {
-        this.setState({isOpen: false});
-    }
-
-    handleFormSubmit = (timer) => {
-      this.props.onFormSubmit(timer);
-      this.setState({isOpen: false})
-    };
-
-    //Renderizado del componente con base a un condicional controlado por la variable isOpen
-    render(){
-        if(this.props.isOpen){
-            return (
-                <TimerForm
-                    onFormSubmit={this.handleFormSubmit}
-                    onFormClose={this.handleFormClose}
-                />
-            );
-        }else{
-            return(
-                <div className='ui two bottom attached buttons'>
-                    <button className='ui basic button icon'
-                            onClick={this.handleFormOpen}>
-                        <i className='plus icon' />
-                    </button>
-                </div>
-            );
-        }
     }
 }
 
@@ -242,8 +268,6 @@ ReactDOM.render(
     <TimersDashboard />,
     document.getElementById('content')
 );
-
-
 
 // /*
 //   eslint-disable react/prefer-stateless-function, react/jsx-boolean-value,
