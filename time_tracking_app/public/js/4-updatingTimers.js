@@ -144,8 +144,8 @@ class ToggleableTimerForm extends React.Component{
     }
 
     handleFormSubmit = (timer) => {
-      this.props.onFormSubmit(timer);
-      this.setState({isOpen: false})
+        this.props.onFormSubmit(timer);
+        this.setState({isOpen: false})
     };
 
     //Renderizado del componente con base a un condicional controlado por la variable isOpen
@@ -235,6 +235,7 @@ class TimerForm extends React.Component {
 
 
 class Timer extends React.Component {
+
     render() {
         const elapsedString = helpers.renderElapsedString(this.props.elapsed);
         return (
@@ -252,9 +253,9 @@ class Timer extends React.Component {
                         </h2>
                     </div>
                     <div className='extra content'>
-                        <span className='right floated edit icon'>
-                            <i className='edit icon' />
-                        </span>
+                        <span className='right floated edit icon'
+                            onClick={this.props.onEditClick}
+                        />
                         <span className='right floated trash icon'>
                             <i className='trash icon' />
                         </span>
