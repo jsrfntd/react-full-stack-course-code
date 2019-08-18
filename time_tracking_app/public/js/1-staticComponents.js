@@ -3,6 +3,7 @@
   no-undef, jsx-a11y/label-has-for
 */
 
+//It is the higher component in hierarchy which is reponsable to render his child components
 class TimersDashboard extends React.Component {
     render(){
         return (
@@ -18,6 +19,7 @@ class TimersDashboard extends React.Component {
     }
 }
 
+//Component that manages the "Timer" component visualization logic and his form edition.
 class EditableTimerList extends React.Component {
     render() {
         return (

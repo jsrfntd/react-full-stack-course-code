@@ -8,8 +8,7 @@
   no-undef, jsx-a11y/label-has-for
 */
 
-//Componenete de mas alto grado en la jerarquia que de encarga de renderizar
-//su respectivos componentes hijos
+//It is the higher component in hierarchy which is reponsable to render his child components
 class TimersDashboard extends React.Component {
     state = {
         timers: [
@@ -43,7 +42,7 @@ class TimersDashboard extends React.Component {
     }
 }
 
-//Lista de elementos editables
+//Editable components list
 class EditableTimerList extends React.Component {
     render() {
         const timers = this.props.timers.map( (timer) => (
@@ -65,8 +64,7 @@ class EditableTimerList extends React.Component {
     }
 }
 
-//Componente que maneja la l'ogica de visualizacion tanto del timer como de
-//su formulario de edicion
+//Component that manages the "Timer" component visualization logic and his form edition.
 class EditableTimer extends React.Component{
     state = {
         editFormOpen: false,

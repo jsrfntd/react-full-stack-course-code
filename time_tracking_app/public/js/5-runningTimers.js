@@ -46,20 +46,52 @@ class TimersDashboard extends React.Component {
         });
     }
 
-    //Function that manages timer edition
+
+    //Esta función maneja el evento de edición de un timer
     handleEditFormSubmit = (timer) => {
+        this.updateTimer(timer);
+    };
 
-    }
+    updateTimer = (attrs) => {
+        this.setState({
+            timers: this.state.timers.map((timer) => {
+                if (timer.id === attrs.id) {
+                    return Object.assign({}, timer, {
+                        title: attrs.title,
+                        project: attrs.project,
+                    });
+                } else {
+                    return timer;
+                }
+            }),
+        });
+    };
 
-    //"Timedashboard" render function.
-    render(){
+    //This function manages the delete event timer
+    handleDeleteTimer = (idTimer) => {
+        this.deleteTimer(idTimer);
+    };
+
+    deleteTimer = (idTimer) => {
+        this.setState({
+            timers: this.state.timers.filter(timer => timer.id !== idTimer)
+        });
+    };
+
+    //Funcion de renderizado
+    render() {
         return (
             <div className='ui three column centered grid'>
                 <div className='column'>
+                    { /* Inside TimersDashboard.render() */}
                     <EditableTimerList
                         timers={this.state.timers}
+                        onFormSubmit={this.handleEditFormSubmit}
+                        onTimerDelete={this.handleDeleteTimer}
                     />
-                    <ToggleableTimerForm onFormSubmit={this.handleCreateFormSubmit}/>
+                    <ToggleableTimerForm
+                        onFormSubmit={this.handleCreateFormSubmit}
+                    />
                 </div>
             </div>
         );
@@ -77,6 +109,8 @@ class EditableTimerList extends React.Component {
                     project={timer.project}
                     elapsed={timer.elapsed}
                     runningSince={timer.runningSince}
+                    onFormSubmit={this.props.onFormSubmit}
+                    onTimerDelete={this.props.onTimerDelete}
                 />
             )
         );
@@ -88,30 +122,129 @@ class EditableTimerList extends React.Component {
     }
 }
 
-//Componente que maneja la l'ogica de visualizacion tanto del timer como de
-//su formulario de edicion
+//This component manages the visualization logic on the timer and form components.
 class EditableTimer extends React.Component{
+    //Component's state
     state = {
         editFormOpen: false,
     };
+
+    //This function manage the edition way of the component. Its passed by parameter to Timer component.
+    handleEditClick = ()  => {
+        this.openForm();
+    };
+
+    handleFormClose = () => {
+        this.closeForm();
+    };
+
+    handleSubmit = (timer) => {
+        this.props.onFormSubmit(timer);
+        this.closeForm();
+    };
+
+    handleTimerDeleteClick = (idTimer) => {
+        this.props.onTimerDelete(this.props.id)
+    };
+
+    openForm = () => {
+        this.setState({editFormOpen : true});
+    };
+
+    closeForm = () => {
+        this.setState({editFormOpen : false});
+    };
+
+
     render(){
-        if(this.props.editFormOpen){
+        if(this.state.editFormOpen){
             return(
                 <TimerForm
+                    id = {this.props.id}
                     title={this.props.title}
                     project={this.props.project}
+                    onFormSubmit={this.handleSubmit}
+                    onFormClose={this.handleFormClose}
                 />
             );
         }else{
             return(
                 <Timer
+                    id={this.props.id}
                     title={this.props.title}
                     project={this.props.project}
                     elapsed={this.props.elapsed}
                     runningSince={this.props.runningSince}
+                    onEditClick={this.handleEditClick}
+                    onDeleteClick={this.handleTimerDeleteClick}
                 />
             );
         }
+    }
+}
+
+class Timer extends React.Component {
+
+// In componentDidMount(), we use the JavaScript function setInterval(). This will invoke the
+// function forceUpdate() once every 50 ms, causing the component to re-render. We set the return
+// of setInterval() to this.forceUpdateInterval.
+// In componentWillUnmount(), we use clearInterval() to stop the interval this.forceUpdateInterval.
+// componentWillUnmount() is called before a component is removed from the app. This will happen
+// if a timer is deleted. We want to ensure we do not continue calling forceUpdate() after the timer
+// has been removed from the page. React will throw errors.
+
+
+    // setInterval() accepts two arguments. The first is the function you would like to call
+    // repeatedly. The second is the interval on which to call that function (in milliseconds).
+    // setInterval() returns a unique interval ID. You can pass this interval ID to
+    // clearInterval() at any time to halt the interval.
+    componentDidMount(){
+        this.forceUpdateInterval = setInterval(() => this.forceUpdate(),50);
+    }
+
+    componentWillUnmount(){
+        clearInterval(this.forceUpdateInterval);
+    }
+
+    handleTimerDeleteClick = (idTimer) => {
+        this.props.onDeleteClick(this.props.id)
+    };
+
+    render() {
+        const elapsedString = helpers.renderElapsedString(
+            this.props.elapsed, this.props.runningSince
+        );
+        return (
+            <div className='ui centered card'>
+                <div className='content'>
+                    <div className='header'>
+                        {this.props.title}
+                    </div>
+                    <div className='meta'>
+                        {this.props.project}
+                    </div>
+                    <div className='center aligned description'>
+                        <h2>
+                            {elapsedString}
+                        </h2>
+                    </div>
+                    <div className='extra content'>
+                        <span
+                            className='right floated edit icon'
+                            onClick={this.props.onEditClick}>
+                            <i className='edit icon' />
+                        </span>
+                        <span className='right floated trash icon'
+                              onClick={this.handleTimerDeleteClick}>
+                            <i className='trash icon' />
+                        </span>
+                    </div>
+                </div>
+                <div className='ui bottom attached blue basic button'>
+                    Start
+                </div>
+            </div>
+        );
     }
 }
 
@@ -144,8 +277,8 @@ class ToggleableTimerForm extends React.Component{
     }
 
     handleFormSubmit = (timer) => {
-      this.props.onFormSubmit(timer);
-      this.setState({isOpen: false})
+        this.props.onFormSubmit(timer);
+        this.setState({isOpen: false})
     };
 
     //Renderizado del componente con base a un condicional controlado por la variable isOpen
@@ -207,14 +340,14 @@ class TimerForm extends React.Component {
                         <div className='field'>
                             <label>Title</label>
                             <input type='text'
-                                   value={this.props.title}
+                                   value={this.state.title}
                                    onChange={this.handleTitleChange}
                             />
                         </div>
                         <div className='field'>
                             <label>Project</label>
                             <input type='text'
-                                   value={this.props.project}
+                                   value={this.state.project}
                                    onChange={this.handleProjectChange}
                             />
                         </div>
@@ -227,41 +360,6 @@ class TimerForm extends React.Component {
                             </button>
                         </div>
                     </div>
-                </div>
-            </div>
-        );
-    }
-}
-
-
-class Timer extends React.Component {
-    render() {
-        const elapsedString = helpers.renderElapsedString(this.props.elapsed);
-        return (
-            <div className='ui centered card'>
-                <div className='content'>
-                    <div className='header'>
-                        {this.props.title}
-                    </div>
-                    <div className='meta'>
-                        {this.props.project}
-                    </div>
-                    <div className='center aligned description'>
-                        <h2>
-                            {elapsedString}
-                        </h2>
-                    </div>
-                    <div className='extra content'>
-                        <span className='right floated edit icon'>
-                            <i className='edit icon' />
-                        </span>
-                        <span className='right floated trash icon'>
-                            <i className='trash icon' />
-                        </span>
-                    </div>
-                </div>
-                <div className='ui bottom attached blue basic button'>
-                    Start
                 </div>
             </div>
         );

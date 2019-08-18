@@ -78,6 +78,39 @@ class TimersDashboard extends React.Component {
         });
     };
 
+    handleStartTimer = (idTimer) => {
+        const now = Date.now();
+        this.setState({
+            timers: this.state.timers.map((timer) => {
+                if(timer.id === idTimer){
+                    return Object.assign({},timer, {
+                        runningSince: now,
+                    });
+                }else{
+                    return timer;
+                }
+            })
+        });
+    };
+
+    handleStopTimer = (idTimer) => {
+        const now = Date.now();
+
+        this.setState({
+            timers: this.state.timers.map((timer) => {
+                if(timer.id === idTimer){
+                    const lastElapsed = now - timer.runningSince;
+                    return Object.assign({},timer, {
+                        elapsed: timer.elapsed + lastElapsed,
+                        runningSince: null,
+                    });
+                }else{
+                    return timer;
+                }
+            })
+        });
+    };
+
     //Funcion de renderizado
     render() {
         return (
@@ -88,6 +121,8 @@ class TimersDashboard extends React.Component {
                         timers={this.state.timers}
                         onFormSubmit={this.handleEditFormSubmit}
                         onTimerDelete={this.handleDeleteTimer}
+                        onStartClick={this.handleStartTimer}
+                        onStopClick={this.handleStopTimer}
                     />
                     <ToggleableTimerForm
                         onFormSubmit={this.handleCreateFormSubmit}
@@ -100,6 +135,8 @@ class TimersDashboard extends React.Component {
 
 //Editable components list
 class EditableTimerList extends React.Component {
+
+
     render() {
         const timers = this.props.timers.map( (timer) => (
                 <EditableTimer
@@ -111,6 +148,8 @@ class EditableTimerList extends React.Component {
                     runningSince={timer.runningSince}
                     onFormSubmit={this.props.onFormSubmit}
                     onTimerDelete={this.props.onTimerDelete}
+                    onStartClick={this.props.onStartClick}
+                    onStopClick={this.props.onStopClick}
                 />
             )
         );
@@ -138,6 +177,14 @@ class EditableTimer extends React.Component{
         this.closeForm();
     };
 
+    openForm = () => {
+        this.setState({editFormOpen : true});
+    };
+
+    closeForm = () => {
+        this.setState({editFormOpen : false});
+    };
+
     handleSubmit = (timer) => {
         this.props.onFormSubmit(timer);
         this.closeForm();
@@ -147,14 +194,13 @@ class EditableTimer extends React.Component{
         this.props.onTimerDelete(this.props.id)
     };
 
-    openForm = () => {
-        this.setState({editFormOpen : true});
+    handleStartClick = (idTimer) => {
+        this.props.onStartClick(idTimer)
     };
 
-    closeForm = () => {
-        this.setState({editFormOpen : false});
+    handleStopClick = (idTimer) => {
+        this.props.onStopClick(idTimer)
     };
-
 
     render(){
         if(this.state.editFormOpen){
@@ -177,6 +223,8 @@ class EditableTimer extends React.Component{
                     runningSince={this.props.runningSince}
                     onEditClick={this.handleEditClick}
                     onDeleteClick={this.handleTimerDeleteClick}
+                    onStartClick={this.handleStartClick}
+                    onStopClick={this.handleStopClick}
                 />
             );
         }
@@ -185,8 +233,38 @@ class EditableTimer extends React.Component{
 
 class Timer extends React.Component {
 
+// In componentDidMount(), we use the JavaScript function setInterval(). This will invoke the
+// function forceUpdate() once every 50 ms, causing the component to re-render. We set the return
+// of setInterval() to this.forceUpdateInterval.
+// In componentWillUnmount(), we use clearInterval() to stop the interval this.forceUpdateInterval.
+// componentWillUnmount() is called before a component is removed from the app. This will happen
+// if a timer is deleted. We want to ensure we do not continue calling forceUpdate() after the timer
+// has been removed from the page. React will throw errors.
+
+
+    // setInterval() accepts two arguments. The first is the function you would like to call
+    // repeatedly. The second is the interval on which to call that function (in milliseconds).
+    // setInterval() returns a unique interval ID. You can pass this interval ID to
+    // clearInterval() at any time to halt the interval.
+    componentDidMount(){
+        this.forceUpdateInterval = setInterval(() => this.forceUpdate(),50);
+    }
+
+    componentWillUnmount(){
+        clearInterval(this.forceUpdateInterval);
+    }
+
+
     handleTimerDeleteClick = (idTimer) => {
         this.props.onDeleteClick(this.props.id)
+    };
+
+    handleStartClick = () => {
+        this.props.onStartClick(this.props.id)
+    };
+
+    handleStopClick = () => {
+        this.props.onStopClick(this.props.id)
     };
 
     render() {
@@ -219,11 +297,32 @@ class Timer extends React.Component {
                         </span>
                     </div>
                 </div>
-                <div className='ui bottom attached blue basic button'>
-                    Start
-                </div>
+                <TimerActionButton
+                    timerIsRunning={!!this.props.runningSince}
+                    onStartClick={this.handleStartClick}
+                    onStopClick={this.handleStopClick}
+                />
             </div>
         );
+    }
+}
+
+
+class TimerActionButton extends React.Component {
+    render () {
+        if(this.props.timerIsRunning){
+            return (
+                <div className='ui bottom attached red basic button' onClick={this.props.onStopClick}>
+                    Stop
+                </div>
+            );
+        }else{
+            return (
+                <div className='ui bottom attached green basic button' onClick={this.props.onStartClick}>
+                    Start
+                </div>
+            );
+        }
     }
 }
 
