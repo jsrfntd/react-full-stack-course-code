@@ -14,22 +14,91 @@
 class TimersDashboard extends React.Component {
 
     state = {
-        timers: [
-            {
-                title: 'Practice squat',
-                project: 'Gym Chores',
-                id: uuid.v4(),
-                elapsed: 5456099,
-                runningSince: Date.now()
-            },
-            {
-                title: 'Bake squash',
-                project: 'Kitchen Chores',
-                id: uuid.v4(),
-                elapsed: 1273998,
-                runningSince: null,
-            },
-        ],
+        timers: [],
+    };
+//
+//     1. Before initial render
+//     React initializes the component. state is set to an object with the property timers, a blank
+//     array, is returned.
+//     2. The initial render
+//     React then calls render() on TimersDashboard. In order for the render to complete, Editable-
+//     TimerList and ToggleableTimerForm — its two children — must be rendered.
+//     3. Children are rendered
+//     EditableTimerList has its render method called. Because it was passed a blank data array, it
+//     simply produces the following HTML output:
+//          <div id='timers'>
+//          </div>
+//     ToggleableTimerForm renders its HTML, which is the “+” button.
+//     4. Initial render is finished
+//     With its children rendered, the initial render of TimersDashboard is finished and the HTML
+//     is written to the DOM.
+//     5. componentDidMount is invoked
+//     Now that the component is mounted, componentDidMount() is called on TimersDashboard.
+//     This method calls loadTimersFromServer(). In turn, that function calls client.getTimers().
+//     That will make the HTTP request to our server, requesting the list of timers. When client
+//     hears back, it invokes our success function.
+//     On invocation, the success function is passed one argument, serverTimers. This is the array
+//     of timers returned by the server. We then call setState(), which will trigger a new render.
+//     The new render populates our app with EditableTimer children and all of their children. The
+//     app is fully loaded and at an imperceptibly fast speed for the end user.
+    componentDidMount(){
+        this.loadTimerFromServer();
+        setInterval(this.loadTimerFromServer,5000)
+    }
+
+    // client.getTimers() uses the Fetch API, which we cover in the next section. For our
+    // purposes, the important thing to know is that when getTimers() is invoked, it fires off
+    // the request to the server and then returns control flow immediately. The execution of our
+    // program does not wait for the server’s response. This is why getTimers() is called an
+    // asynchronous function.
+    // The success function we pass to getTimers() is called a callback. We’re saying: “When
+    // you finally hear back from the server, if it’s a successful response, invoke this function.”
+    // This asynchronous paradigm ensures that execution of our JavaScript is not blocked by
+    // I/O.
+    loadTimerFromServer = () => {
+        client.getTimers((serverTimers) => (
+                this.setState({ timers: serverTimers })
+            )
+        );
+    };
+
+    startTimer = (timerId) => {
+        const now = Date.now();
+        this.setState({
+            timers: this.state.timers.map((timer) => {
+                if (timer.id === timerId) {
+                    return Object.assign({}, timer, {
+                        runningSince: now,
+                    });
+                } else {
+                    return timer;
+                }
+            }),
+        });
+        client.startTimer(
+            { id: timerId, start: now }
+        );
+    };
+
+    stopTimer = (timerId) => {
+        const now = Date.now();
+        this.setState({
+            timers: this.state.timers.map((timer) => {
+                if(timer.id === timerId){
+                    const lastElapsed = now - timer.runningSince;
+                    return Object.assign({}, timer , {
+                        elapsed: timer.elapsed + lastElapsed,
+                        runningSince: null,
+                    })
+                }else{
+                    return timer;
+                }
+            })
+        })
+
+        client.stopTimer(
+            { id: timerId, stop: now }
+        );
     };
 
     //Esta función maneja el evento de creación de un timer
@@ -37,13 +106,15 @@ class TimersDashboard extends React.Component {
         this.createTimer(timer);
     };
 
+
     //Función que implementa la creación de un timer
     //La separacion de esta funcion de la funcion handleCreateFormSubmit se hace debido al principio de Responsabilidad Unica
     createTimer = (timer) => {
-        const newTimer = helpers.newTimer(timer);
+        const t = helpers.newTimer(timer);
         this.setState({
-            timers: this.state.timers.concat(newTimer),
+            timers: this.state.timers.concat(t),
         });
+        client.createTimer(t)
     }
 
 
@@ -65,6 +136,7 @@ class TimersDashboard extends React.Component {
                 }
             }),
         });
+        client.updateTimer(attrs);
     };
 
     //This function manages the delete event timer
@@ -76,6 +148,7 @@ class TimersDashboard extends React.Component {
         this.setState({
             timers: this.state.timers.filter(timer => timer.id !== idTimer)
         });
+        client.deleteTimer({id:idTimer})
     };
 
     handleStartTimer = (idTimer) => {
@@ -91,11 +164,11 @@ class TimersDashboard extends React.Component {
                 }
             })
         });
+        this.startTimer(idTimer);
     };
 
     handleStopTimer = (idTimer) => {
         const now = Date.now();
-
         this.setState({
             timers: this.state.timers.map((timer) => {
                 if(timer.id === idTimer){
@@ -109,6 +182,7 @@ class TimersDashboard extends React.Component {
                 }
             })
         });
+        this.stopTimer(idTimer)
     };
 
     //Funcion de renderizado
@@ -392,21 +466,22 @@ class TimerForm extends React.Component {
         project: this.props.project || '',
     };
 
+
+    handleTitleChange = (e) => {
+        this.setState({ title: e.target.value });
+    };
+
+    handleProjectChange = (e) => {
+        this.setState({ project: e.target.value });
+    };
+
     //Función que envia al padre las propiedades del elemento creado o modificado
-    handleSubmit = (e) => {
+    handleSubmit = () => {
         this.props.onFormSubmit({
             id: this.props.id,
             title: this.state.title,
             project: this.state.project,
         });
-    };
-
-    handleTitleChange = (e) => {
-        this.setState({title: e.target.value})
-    };
-
-    handleProjectChange = (e) => {
-        this.setState({project: e.target.value})
     };
 
     render() {
@@ -417,23 +492,31 @@ class TimerForm extends React.Component {
                     <div className='ui form'>
                         <div className='field'>
                             <label>Title</label>
-                            <input type='text'
-                                   value={this.state.title}
-                                   onChange={this.handleTitleChange}
+                            <input
+                                type='text'
+                                value={this.state.title}
+                                onChange={this.handleTitleChange}
                             />
                         </div>
                         <div className='field'>
                             <label>Project</label>
-                            <input type='text'
-                                   value={this.state.project}
-                                   onChange={this.handleProjectChange}
+                            <input
+                                type='text'
+                                value={this.state.project}
+                                onChange={this.handleProjectChange}
                             />
                         </div>
                         <div className='ui two bottom attached buttons'>
-                            <button className='ui basic blue button' onClick={this.handleSubmit}>
+                            <button
+                                className='ui basic blue button'
+                                onClick={this.handleSubmit}
+                            >
                                 {submitText}
                             </button>
-                            <button className='ui basic red button' onClick={this.props.onFormClose}>
+                            <button
+                                className='ui basic red button'
+                                onClick={this.props.onFormClose}
+                            >
                                 Cancel
                             </button>
                         </div>

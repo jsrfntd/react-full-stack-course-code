@@ -1,6 +1,20 @@
 /* eslint-disable no-console */
 /* eslint-disable no-undef */
 window.client = (function () {
+  // By default, Fetch makes a GET request, so we’re telling Fetch to make a GET request to /api/timers.
+  // We also pass along one parameter: headers, the HTTP headers in our request. We’re telling the
+  // server we’ll accept only a JSON response.
+
+  // • checkStatus(): This function is defined inside of client.js. It checks if the server returned an error. If the server returned an error, checkStatus() logs the error to the console.
+  // • parseJSON(): This function is also defined inside of client.js. It takes the response object emitted by fetch() and returns a JavaScript object.
+  // • success(): This is the function we pass as an argument to getTimers(). getTimers() will invoke this function if the server successfully returned a response.
+  // At each stage of the pipeline, the result of the previous statement is passed as the argument to the
+  // next one:
+  // 1. When checkStatus() is invoked, it’s passed a Fetch response object that fetch() returns.
+  // 2. checkStatus(), after verifying the response, returns the same response object.
+  // 3. parseJSON() is invoked and passed the response object returned by checkStatus().
+  // 4. parseJSON() returns the JavaScript array of timers returned by the server.
+  // 5. success() is invoked with the array of timers returned by parseJSON().
   function getTimers(success) {
     return fetch('/api/timers', {
       headers: {
@@ -12,6 +26,7 @@ window.client = (function () {
   }
 
   function createTimer(data) {
+    console.log('creando...')
     return fetch('/api/timers', {
       method: 'post',
       body: JSON.stringify(data),
